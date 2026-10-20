@@ -184,3 +184,18 @@ def detect_language(locale_name: str | None) -> str:
         return DEFAULT_LANGUAGE
     prefix = locale_name.replace("-", "_").split("_")[0].lower()
     return prefix if is_supported(prefix) else DEFAULT_LANGUAGE
+
+
+def resolve_language(stored: object, locale_name: str | None) -> str:
+    """Choose the startup language from a saved preference and the system locale.
+
+    Args:
+        stored: The previously saved language code, if any (may be invalid).
+        locale_name: The system locale name, used when ``stored`` is invalid.
+
+    Returns:
+        ``stored`` if it is a supported code, otherwise the detected language.
+    """
+    if is_supported(stored):
+        return str(stored)
+    return detect_language(locale_name)

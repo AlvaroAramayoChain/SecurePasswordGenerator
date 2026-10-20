@@ -17,11 +17,22 @@ classifiers = [
     "Topic :: Security",
 ]
 
+[project.optional-dependencies]
+# 6.10.1 is the first release with wheels for Python 3.10-3.14.
+gui = ["PySide6>=6.10.1,<6.13"]
+build = ["PySide6>=6.10.1,<6.13", "pyinstaller>=6.10,<7", "pillow>=10"]
+
 [project.scripts]
 passgen = "passgen.cli:main"
 
+[project.gui-scripts]
+passgen-gui = "passgen.gui.app:main"
+
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"passgen.gui" = ["assets/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
