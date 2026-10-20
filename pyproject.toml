@@ -18,9 +18,24 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
+# PySide6_Essentials ships only the Qt modules we use (Core, Gui, Widgets);
+# the full PySide6 metapackage also pulls Addons, WebEngine and Pdf.
 # 6.10.1 is the first release with wheels for Python 3.10-3.14.
-gui = ["PySide6>=6.10.1,<6.13"]
-build = ["PySide6>=6.10.1,<6.13", "pyinstaller>=6.10,<7", "pillow>=10"]
+# Python < 3.12 is capped below 6.12: the 6.12.0 abi3 wheels return None from
+# every void method without adding a reference (-1 per call), so None's
+# refcount reaches zero and the interpreter aborts with "none_dealloc"
+# (exit 134). Python 3.12+ is unaffected because None is immortal there.
+# Lift the cap once a 6.12.x release is verified not to leak.
+gui = [
+    'PySide6_Essentials>=6.10.1,<6.12; python_version < "3.12"',
+    'PySide6_Essentials>=6.10.1,<6.13; python_version >= "3.12"',
+]
+build = [
+    'PySide6_Essentials>=6.10.1,<6.12; python_version < "3.12"',
+    'PySide6_Essentials>=6.10.1,<6.13; python_version >= "3.12"',
+    "pyinstaller>=6.10,<7",
+    "pillow>=10",
+]
 
 [project.scripts]
 passgen = "passgen.cli:main"

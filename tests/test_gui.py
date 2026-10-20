@@ -17,21 +17,10 @@ from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from passgen import SYMBOLS  # noqa: E402
 from passgen.gui import theme  # noqa: E402
-from passgen.gui.app import create_application  # noqa: E402
 from passgen.gui.window import PadlockWindow  # noqa: E402
 from passgen.strings import SUPPORTED_LANGUAGES, TEXTS, detect_language, get_text  # noqa: E402
 
 PASSWORD_ALPHABET = set(string.ascii_letters + string.digits + SYMBOLS)
-
-
-@pytest.fixture(scope="session")
-def qapp() -> QApplication:
-    """Create the shared offscreen Qt application.
-
-    Returns:
-        The application instance.
-    """
-    return create_application(["pytest"])
 
 
 @pytest.fixture
@@ -62,6 +51,7 @@ def window(qapp: QApplication, settings: QSettings) -> Iterator[PadlockWindow]:
     widget.show()
     yield widget
     widget.close()
+    widget.deleteLater()
 
 
 def _click_language(window: PadlockWindow, language: str) -> None:

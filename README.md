@@ -97,7 +97,9 @@ python main.py --cli               # command-line version
 
 Installing the package also provides two commands: `passgen-gui` (desktop app)
 and `passgen` (CLI). The core generator has no third-party dependencies; only
-the GUI needs PySide6 (Qt), via the `gui` extra.
+the GUI needs Qt, via the `gui` extra (`PySide6_Essentials`). On Python 3.10
+and 3.11 the extra stays below PySide6 6.12, whose wheels crash those
+interpreters; see the comment in `pyproject.toml`.
 
 ## CLI usage
 
@@ -178,7 +180,7 @@ no secrets.
 ## Running tests
 
 ```bash
-pip install -r requirements-gui.txt    # pytest + PySide6
+pip install -r requirements-gui.txt    # pytest + PySide6_Essentials
 python -m pytest
 ```
 
@@ -190,7 +192,7 @@ Windows and macOS with Python 3.10 to 3.13, and again inside Docker.
 ## Building the desktop app
 
 ```bash
-pip install -e ".[build]"              # PySide6, PyInstaller, Pillow
+pip install -e ".[build]"              # PySide6_Essentials, PyInstaller, Pillow
 python build.py --verify --archive
 ```
 
