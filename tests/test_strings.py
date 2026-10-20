@@ -12,6 +12,7 @@ from passgen.strings import (
     UnsupportedLanguageError,
     detect_language,
     get_text,
+    resolve_language,
 )
 
 REFERENCE_LANGUAGE = SUPPORTED_LANGUAGES[0]
@@ -112,6 +113,22 @@ def test_get_text_rejects_unknown_language() -> None:
 def test_detect_language(locale_name: str | None, expected: str) -> None:
     """Spanish locales map to Spanish; everything else to the default."""
     assert detect_language(locale_name) == expected
+
+
+@pytest.mark.parametrize(
+    ("stored", "locale_name", "expected"),
+    [
+        ("es", "en_US", "es"),
+        ("en", "es_AR", "en"),
+        ("xx", "es_AR", "es"),
+        ("xx", "en_US", "en"),
+        (None, "es_ES", "es"),
+        (42, "fr_FR", DEFAULT_LANGUAGE),
+    ],
+)
+def test_resolve_language(stored: object, locale_name: str, expected: str) -> None:
+    """A valid stored code wins; anything else falls back to the locale."""
+    assert resolve_language(stored, locale_name) == expected
 
 
 def test_key_prefix_matches_command_keys() -> None:
