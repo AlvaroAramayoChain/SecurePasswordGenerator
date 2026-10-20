@@ -1,0 +1,13 @@
+services:
+  test:
+    build: .
+    image: passgen:dev
+    entrypoint: ["python", "-m", "pytest"]
+    # The source tree is read-only for the non-root user, so skip pytest's cache.
+    command: ["-v", "-p", "no:cacheprovider"]
+
+  cli:
+    build: .
+    image: passgen:dev
+    stdin_open: true
+    tty: true
