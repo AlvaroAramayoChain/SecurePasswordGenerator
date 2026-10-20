@@ -1,5 +1,6 @@
 # Development image: runs the test suite and the interactive CLI.
-# The desktop GUI is packaged natively and is not part of this image.
+# The desktop GUI is packaged natively and is not part of this image:
+# PySide6 is not installed and the GUI tests skip themselves.
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -21,4 +22,4 @@ COPY --chown=app:app tests ./tests
 
 USER app
 
-ENTRYPOINT ["python", "main.py"]
+ENTRYPOINT ["python", "main.py", "--cli"]

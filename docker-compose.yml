@@ -9,5 +9,6 @@ services:
   cli:
     build: .
     image: passgen:dev
+    entrypoint: ["python", "main.py", "--cli"]
     stdin_open: true
     tty: true

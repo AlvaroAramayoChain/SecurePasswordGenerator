@@ -22,3 +22,11 @@ htmlcov
 .env
 *.md
 LICENSE
+# Desktop GUI, packaging and docs are not part of the Docker image.
+src/passgen/gui
+assets
+docs
+tools
+build.py
+requirements-gui.txt
+*.spec
