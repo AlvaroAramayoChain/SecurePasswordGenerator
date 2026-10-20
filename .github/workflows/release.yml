@@ -15,7 +15,9 @@ jobs:
       fail-fast: true
       matrix:
         # macos-latest runs on Apple Silicon, so the macOS build is arm64 only.
-        os: [windows-latest, macos-latest, ubuntu-latest]
+        # Linux builds on the oldest supported Ubuntu so the binary needs only
+        # glibc 2.35 and runs on more distributions.
+        os: [windows-latest, macos-latest, ubuntu-22.04]
     steps:
       - uses: actions/checkout@v4
 

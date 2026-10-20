@@ -55,8 +55,9 @@ The apps are **not code-signed**, so your system will warn you the first time:
   manager. Every modern desktop has one: GNOME, KDE Plasma, Xfce with
   compositing enabled, and any Wayland session. Without one, the window still
   works but shows a thin dark rim around the padlock; set `PASSGEN_OPAQUE=1` to
-  paint a solid background instead. The Linux build is made on Ubuntu 24.04;
-  on older distributions, run from source.
+  paint a solid background instead. The Linux build is made on Ubuntu 22.04
+  and needs glibc 2.35 or newer (Ubuntu 22.04+, Debian 12+, Fedora 36+ and
+  other distributions from 2022 on). On older systems, run from source.
 
 ## Language
 
