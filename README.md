@@ -1,6 +1,6 @@
 # Secure Password Generator
 
-[![CI](https://github.com/OWNER/SecurePasswordGenerator/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/SecurePasswordGenerator/actions/workflows/ci.yml)
+[![CI](https://github.com/AlvaroAramayoChain/SecurePasswordGenerator/actions/workflows/ci.yml/badge.svg)](https://github.com/AlvaroAramayoChain/SecurePasswordGenerator/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
@@ -29,7 +29,7 @@ Requires Python 3.10 or newer. The generator itself has no third-party
 dependencies.
 
 ```bash
-git clone https://github.com/OWNER/SecurePasswordGenerator.git
+git clone https://github.com/AlvaroAramayoChain/SecurePasswordGenerator.git
 cd SecurePasswordGenerator
 python main.py
 ```
