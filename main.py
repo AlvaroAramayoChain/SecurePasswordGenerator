@@ -10,6 +10,8 @@ from pathlib import Path
 
 SRC_DIR = Path(__file__).resolve().parent / "src"
 CLI_FLAG = "--cli"
+# Builds the window offscreen and checks bundled assets (used by release CI).
+SELF_TEST_FLAG = "--self-test"
 EXIT_MISSING_GUI = 1
 MISSING_GUI_MESSAGE = (
     "The desktop GUI needs PySide6. Install it with:\n"
@@ -39,18 +41,22 @@ def run_cli(argv: Sequence[str]) -> int:
     return main(list(argv))
 
 
-def run_gui() -> int:
+def run_gui(check_only: bool = False) -> int:
     """Run the desktop GUI, explaining how to install it if PySide6 is missing.
+
+    Args:
+        check_only: Build the window and verify assets instead of showing it.
 
     Returns:
         The GUI's exit code, or ``EXIT_MISSING_GUI``.
     """
     try:
         from passgen.gui import run_gui as start_gui
+        from passgen.gui import self_test
     except ImportError:
         print(MISSING_GUI_MESSAGE, file=sys.stderr)
         return EXIT_MISSING_GUI
-    return start_gui()
+    return self_test() if check_only else start_gui()
 
 
 def run(argv: Sequence[str] | None = None) -> int:
@@ -67,7 +73,7 @@ def run(argv: Sequence[str] | None = None) -> int:
     if CLI_FLAG in args:
         args.remove(CLI_FLAG)
         return run_cli(args)
-    return run_gui()
+    return run_gui(check_only=SELF_TEST_FLAG in args)
 
 
 if __name__ == "__main__":

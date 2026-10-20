@@ -22,6 +22,7 @@ FULL_CIRCLE_DEGREES = 360
 HALF_CIRCLE_DEGREES = 180
 QUARTER_CIRCLE_DEGREES = 90
 ICON_PADDING_RATIO = 0.04
+ICON_KEYHOLE_SCALE = 3.2
 GLOSS_INSET_RATIO = 1.6
 GLOSS_SIDE_LENGTH = 70
 GLOSS_TOP_GAP = 24
@@ -393,12 +394,14 @@ def silhouette_bounds() -> QRectF:
     )
 
 
-def paint_padlock_in(painter: QPainter, target: QRectF) -> None:
+def paint_padlock_in(painter: QPainter, target: QRectF, large_keyhole: bool = False) -> None:
     """Paint the padlock scaled to fit, centered, inside ``target``.
 
     Args:
         painter: An active painter.
         target: The rectangle to fit the padlock into.
+        large_keyhole: Add a big keyhole in the body center, which keeps the
+            design recognizable at small icon sizes.
     """
     bounds = silhouette_bounds()
     scale = min(target.width() / bounds.width(), target.height() / bounds.height())
@@ -407,6 +410,24 @@ def paint_padlock_in(painter: QPainter, target: QRectF) -> None:
     painter.scale(scale, scale)
     painter.translate(-bounds.center())
     paint_padlock(painter)
+    if large_keyhole:
+        _paint_large_keyhole(painter)
+    painter.restore()
+
+
+def _paint_large_keyhole(painter: QPainter) -> None:
+    """Paint an enlarged copy of the keyhole in the middle of the body.
+
+    Args:
+        painter: An active painter in window coordinates.
+    """
+    keyhole_mid_y = (theme.KEYHOLE_CENTER_Y + theme.KEYHOLE_STEM_BOTTOM) / 2
+    body_mid_y = theme.BODY.y + theme.BODY.height / 2
+    painter.save()
+    painter.translate(theme.CENTER_X, body_mid_y)
+    painter.scale(ICON_KEYHOLE_SCALE, ICON_KEYHOLE_SCALE)
+    painter.translate(-theme.CENTER_X, -keyhole_mid_y)
+    _paint_keyhole(painter)
     painter.restore()
 
 
@@ -423,7 +444,8 @@ def render_icon(size: int) -> QPixmap:
     pixmap.fill(Qt.GlobalColor.transparent)
     padding = size * ICON_PADDING_RATIO
     painter = QPainter(pixmap)
-    paint_padlock_in(painter, QRectF(padding, padding, size - 2 * padding, size - 2 * padding))
+    paint_padlock_in(painter, QRectF(padding, padding, size - 2 * padding, size - 2 * padding),
+                     large_keyhole=True)
     painter.end()
     return pixmap
 
