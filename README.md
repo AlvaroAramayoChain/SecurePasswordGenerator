@@ -1,258 +1,474 @@
-# Secure Password Generator
-
-[![CI](https://github.com/AlvaroAramayoChain/SecurePasswordGenerator/actions/workflows/ci.yml/badge.svg)](https://github.com/AlvaroAramayoChain/SecurePasswordGenerator/actions/workflows/ci.yml)
-![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
-
 <p align="center">
-  <img src="docs/screenshot-en.png" alt="Secure Password Generator in English" width="360">
-  &nbsp;&nbsp;
-  <img src="docs/screenshot-es.png" alt="Secure Password Generator en español" width="360">
+  <img src="docs/banner.svg" width="820" alt="Secure Password Generator: a glossy yellow padlock next to the project name and a blinking terminal prompt">
 </p>
 
-A cryptographically secure random password generator with a retro, padlock-shaped
-desktop app (Spanish and English), a command-line interface and a small,
-reusable Python API.
+<h1 align="center">Secure Password Generator</h1>
 
-## Features
+<p align="center">Strong random passwords from a retro padlock-shaped app, in Spanish or English.</p>
 
-- **Cryptographically secure**: built on Python's `secrets` module, never `random`.
-- **Y2K desktop app**: a glossy, padlock-shaped window with a guided "Password
-  Console". It asks for the length, then the character types, and shows the
-  password. Press Enter for another password or `c` to copy it.
-- **Bilingual**: Spanish and English, picked automatically from your system
-  language, with an **ES | EN** toggle on the padlock.
-- **Configurable**: 8 to 128 characters; letters (upper and lower case), digits
-  and symbols (`!@#$%^&*()-_=+[]{};:,.<>?`) in any combination.
-- **Guaranteed coverage**: every selected category appears at least once, at a
-  random position.
-- **Command line and library**: `python main.py --cli`, or
-  `from passgen import generate_password`.
-- **Native downloads** for Windows, macOS and Linux, plus Docker for development.
+<p align="center">
+  <a href="https://github.com/AlvaroAramayoChain/SecurePasswordGenerator/actions/workflows/ci.yml"><img src="https://github.com/AlvaroAramayoChain/SecurePasswordGenerator/actions/workflows/ci.yml/badge.svg" alt="CI status"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="License: MIT"></a>
+  <a href="https://github.com/AlvaroAramayoChain/SecurePasswordGenerator/releases/latest"><img src="https://img.shields.io/github/v/release/AlvaroAramayoChain/SecurePasswordGenerator?sort=semver" alt="Latest release"></a>
+</p>
 
-## Download
+<p align="center">
+  <img src="docs/demo-es.gif" width="300" alt="Demo in Spanish: the user types 16, then ln for letters and numbers, gets a random password, and presses Enter for another one">
+  &nbsp;
+  <img src="docs/demo-en.gif" width="300" alt="Demo in English: the user types 16, then ld for letters and digits, gets a random password, and presses Enter for another one">
+</p>
 
-Ready-to-run builds are attached to every release on the
-**[Releases page](https://github.com/AlvaroAramayoChain/SecurePasswordGenerator/releases)**:
+## Installation instructions
 
-| System  | File                                       | How to start                                             |
-| ------- | ------------------------------------------ | -------------------------------------------------------- |
-| Windows | `SecurePasswordGenerator-windows.zip`      | Unzip, then run `SecurePasswordGenerator.exe`            |
-| macOS   | `SecurePasswordGenerator-macos.zip`        | Unzip, then open `SecurePasswordGenerator.app`           |
-| Linux   | `SecurePasswordGenerator-linux.tar.gz`     | `tar xzf …`, then run `SecurePasswordGenerator/SecurePasswordGenerator` |
+Every release on the **[Releases page](https://github.com/AlvaroAramayoChain/SecurePasswordGenerator/releases/latest)**
+has one download per system. Each download is a **compressed archive (ZIP or
+TAR) that contains the app**, not a single loose file, so extract it first.
 
-The apps are **not code-signed**, so your system will warn you the first time:
+### Windows
 
-- **Windows SmartScreen** shows "Windows protected your PC". Click
-  **More info**, then **Run anyway**.
-- **macOS Gatekeeper** says the app "cannot be opened" or "is not from an
-  identified developer". Open it once, then go to **System Settings → Privacy
-  & Security**, scroll down and click **Open Anyway**. Alternatively, from
-  Terminal: `xattr -dr com.apple.quarantine SecurePasswordGenerator.app`.
-  The macOS build targets **Apple Silicon (arm64) only**. On Intel Macs,
-  [run from source](#run-from-source) for now.
-- **Linux**: the transparent padlock shape needs a **compositing** window
-  manager. Every modern desktop has one: GNOME, KDE Plasma, Xfce with
-  compositing enabled, and any Wayland session. Without one, the window still
-  works but shows a thin dark rim around the padlock; set `PASSGEN_OPAQUE=1` to
-  paint a solid background instead. The Linux build is made on Ubuntu 22.04
-  and needs glibc 2.35 or newer (Ubuntu 22.04+, Debian 12+, Fedora 36+ and
-  other distributions from 2022 on). On older systems, run from source.
+1. Download **`SecurePasswordGenerator-windows.zip`**.
+2. Right-click it and choose **Extract All…**.
+3. Open the extracted folder, then the **`SecurePasswordGenerator`** folder inside it.
+4. Double-click **`SecurePasswordGenerator.exe`**.
 
-## Language
+Keep the `.exe` next to the `_internal` folder beside it, because the app needs
+both. If Windows SmartScreen says "Windows protected your PC", click
+**More info → Run anyway**. The warning appears because the app is not
+code-signed.
 
-The interface speaks **Spanish** and **English**:
+### macOS (Apple Silicon only)
 
-- On first launch it follows your system language: any `es*` locale selects
-  Spanish, everything else selects English.
-- Click **ES** or **EN** on the pill next to the window buttons to switch. The
-  console restarts in the new language.
-- Your choice is remembered for next time. Only the language code is stored
-  (via `QSettings`), never any password.
+1. Download **`SecurePasswordGenerator-macos.zip`** and double-click it to extract.
+2. Drag **`SecurePasswordGenerator.app`** into your **Applications** folder.
+3. The first time, **right-click the app → Open**, then confirm. On macOS 15
+   or newer, if there is no Open button, go to **System Settings → Privacy &
+   Security** and click **Open Anyway**.
 
-Each language has its own character-type keys:
+If macOS still refuses (the app is not notarized), run this once in Terminal:
 
-| Language | Letters | Digits | Symbols | Copy |
-| -------- | ------- | ------ | ------- | ---- |
-| Español  | `l` (letras) | `n` (números) | `s` (símbolos) | `c` |
-| English  | `l` (letters) | `d` (digits) | `s` (symbols) | `c` |
+```bash
+xattr -dr com.apple.quarantine /Applications/SecurePasswordGenerator.app
+```
 
-Press Enter at the types question to include all of them, or combine keys
-(for example `ln` in Spanish or `ld` in English).
+The download is built for Apple Silicon (M1 and newer). On an **Intel Mac**,
+use [Run from source](#run-from-source) instead.
 
-## Run from source
+### Linux
 
-Requires Python 3.10 or newer.
+```bash
+tar xzf SecurePasswordGenerator-linux.tar.gz
+cd SecurePasswordGenerator
+chmod +x SecurePasswordGenerator   # only if it is not already executable
+./SecurePasswordGenerator
+```
+
+You need **glibc 2.35 or newer**, which means Ubuntu 22.04 or newer, or any
+distribution from 2022 on. The transparent padlock shape needs a desktop with a
+**compositor**, which GNOME, KDE Plasma and every Wayland session have. Without
+one the app still works, with a thin dark rim around the padlock. Set
+`PASSGEN_OPAQUE=1` to paint a solid background instead.
+
+### Run from source
+
+With Python 3.10 or newer:
 
 ```bash
 git clone https://github.com/AlvaroAramayoChain/SecurePasswordGenerator.git
 cd SecurePasswordGenerator
-python -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -e ".[gui]"
-
-python main.py                     # desktop app
-python main.py --cli               # command-line version
+python main.py
 ```
 
-Installing the package also provides two commands: `passgen-gui` (desktop app)
-and `passgen` (CLI). The core generator has no third-party dependencies; only
-the GUI needs Qt, via the `gui` extra (`PySide6_Essentials`). On Python 3.10
-and 3.11 the extra stays below PySide6 6.12, whose wheels crash those
-interpreters; see the comment in `pyproject.toml`.
+### Command-line mode
 
-## CLI usage
-
-```text
-usage: passgen [-h] [-l LENGTH] [--no-letters] [--no-digits] [--no-symbols]
-
-Generate a cryptographically secure random password.
-
-options:
-  -h, --help           show this help message and exit
-  -l, --length LENGTH  password length (8-128); asked interactively if omitted
-  --no-letters         exclude letters (A-Z, a-z)
-  --no-digits          exclude digits (0-9)
-  --no-symbols         exclude special characters
-
-Example: passgen --length 20 --no-symbols
-```
-
-```console
-$ python main.py --cli
-Password length (8-128): 16
-q7}V;Rm2!xLc@9Tz
-
-$ python main.py --cli --length 24 --no-symbols
-b8KxQ2mVt7RzL4hNwP9cYs3D
-
-$ python main.py --cli -l 10 --no-letters --no-symbols
-4817305926
-
-$ python main.py --cli --length 4
-Error: Password length must be between 8 and 128 characters, got 4.
-```
-
-The CLI is English only. It exits with code `0` on success, `2` on invalid
-input and `130` when cancelled (Ctrl+C or end of input).
-
-## Use as a library
-
-```python
-from passgen import InvalidLengthError, PasswordGeneratorError, generate_password
-
-password = generate_password(16)                         # all character sets
-pin_like = generate_password(12, use_letters=False, use_symbols=False)
-
-try:
-    generate_password(200)
-except InvalidLengthError as error:
-    print(error.min_length, error.max_length)            # 8 128
-except PasswordGeneratorError as error:                  # base class for all errors
-    print(error)
-```
-
-| Exception                     | Raised when                                   |
-| ----------------------------- | --------------------------------------------- |
-| `InvalidLengthError`          | The length is outside 8-128 (`ValueError`).   |
-| `InvalidLengthTypeError`      | The length is not an `int` (`TypeError`).     |
-| `NoCharacterSetSelectedError` | Letters, digits and symbols are all disabled. |
-
-The guided dialog behind the desktop app lives in `passgen.session` (pure
-Python, no Qt), and its texts live in `passgen.strings`, one dictionary per
-language. Adding a language only takes one more dictionary.
-
-## Docker
-
-Docker provides an identical environment for development, tests and the CLI.
-The desktop app is packaged natively instead, so PySide6 is not installed in
-the image and the GUI tests skip themselves there.
+No window, just a password in your terminal:
 
 ```bash
-docker compose run --rm test                           # run the test suite
-docker compose run --rm cli                            # interactive CLI
-docker compose run --rm cli --length 20 --no-symbols   # CLI with flags
+python main.py --cli -l 20 --no-symbols
 ```
 
-The image is based on `python:3.12-slim`, runs as a non-root user and contains
-no secrets.
+## How to use
 
-## Running tests
+1. **Length**: type how many characters you want (8 to 128) and press Enter.
+2. **Character types**: press Enter for all of them, or combine the keys shown
+   on screen. In English those are `l` letters, `d` digits, `s` symbols
+   (`ld` = letters and digits); in Spanish `l` letras, `n` números, `s` símbolos.
+3. **Your password** appears in the terminal.
+4. Press **Enter** for another one, or type **`c`** to copy it to the clipboard.
+
+Click **ES | EN** on the padlock to switch language at any time. The app
+starts in your system's language and remembers your choice.
+
+## FAQ
+
+### How it works
+
+<details>
+<summary><b>How does the program generate a password, step by step?</b></summary>
+
+`generate_password()` in [`generator.py`](src/passgen/generator.py) does four things:
+
+1. Checks the length is a whole number from 8 to 128.
+2. Picks **one random character from each selected category** (uppercase,
+   lowercase, digits, symbols), so every category is guaranteed to appear.
+3. Fills the remaining positions with random characters from **all selected
+   categories combined**.
+4. **Shuffles** the result securely, so the guaranteed characters do not
+   always sit at the start.
+
+Every random choice uses Python's `secrets` module: `secrets.choice` for
+characters and `secrets.SystemRandom().shuffle` for the order.
+
+</details>
+
+<details>
+<summary><b>Why <code>secrets</code> and not <code>random</code>?</b></summary>
+
+`random` is built for simulations and games. Its generator (Mersenne Twister)
+is fast but predictable: after seeing enough outputs, its future values can be
+calculated. `secrets` asks the operating system's cryptographically secure
+random source instead, which is designed so that past outputs reveal nothing
+about future ones. Python's own documentation recommends `secrets` for
+passwords and tokens.
+
+</details>
+
+<details>
+<summary><b>Does forcing at least one character per category weaken the password?</b></summary>
+
+Barely: it costs about **0.32 bits** of entropy, measured exactly. For a
+16-character password with all four sets enabled (a pool of 26 + 26 + 10 + 25 =
+87 characters):
+
+| Scenario | Entropy |
+| --- | --- |
+| Every character fully free: 16 × log₂(87) = 16 × 6.443 | **103.09 bits** |
+| Uniform over passwords that contain every category | 102.85 bits |
+| **This program** (one forced pick per category, then shuffle) | **102.76 bits** |
+
+The rule excludes the 15% of 16-character strings that miss a category, and
+the forced picks make some passwords slightly more likely than others.
+Together that costs 103.09 − 102.76 = 0.32 bits, which means an attacker's
+search space shrinks by a factor of 2^0.32 ≈ 1.25. That is negligible against
+2^102.76 possibilities.
+
+The program's figure is computed exactly, not estimated: a password with
+category counts (a, b, c, d) is produced with probability
+`a·b·c·d · 12! / (26·26·10·25 · 87^12 · 16!)`, and summing −p·log₂(p) over all
+passwords gives 102.76 bits.
+
+</details>
+
+<details>
+<summary><b>What characters are used, and why those symbols?</b></summary>
+
+- Uppercase `A–Z` and lowercase `a–z` (26 each)
+- Digits `0–9` (10)
+- 25 symbols: `` !@#$%^&*()-_=+[]{};:,.<>? ``
+
+The symbols are ASCII punctuation that password forms commonly accept. Spaces,
+quotes (`'` `"` `` ` ``), backslash, slash, `|` and `~` are left out because
+they often get rejected or cause escaping problems in terminals, config files
+and URLs.
+
+</details>
+
+<details>
+<summary><b>What are the length limits (8–128), and why?</b></summary>
+
+They are the project's choices, stored as `MIN_LENGTH` and `MAX_LENGTH` in
+[`generator.py`](src/passgen/generator.py). Eight is a widely used minimum and
+leaves room for all four categories. For accounts protected only by a password,
+longer is better: 16 is the default for the CLI and the library. 128 is far
+beyond any practical need and keeps input reasonable. Anything outside the
+range shows a friendly error and asks again.
+
+</details>
+
+<details>
+<summary><b>Is my password stored, logged, or sent anywhere?</b></summary>
+
+No. Passwords exist only in memory and on screen while the app is open. They
+are never written to disk or logs, and the app makes no network connections.
+The only saved setting is the interface language code. One caveat: `c` puts
+the password on your system clipboard, where it stays until you copy
+something else, and some systems keep a clipboard history.
+
+</details>
+
+<details>
+<summary><b>How does the guided terminal work, and why does it show no code?</b></summary>
+
+The conversation is a small **state machine** in
+[`session.py`](src/passgen/session.py) with three states: *ask length → ask
+character types → show result*. It is plain Python with no Qt. You give it
+your answer, and it returns the lines to display (question, echo, error or
+password) plus an optional "copy this" request.
+
+The window only draws those lines and handles the clipboard. Because the
+terminal never runs Python, it shows nothing but plain questions and answers.
+This split also lets the dialog be tested in milliseconds without opening a
+window.
+
+</details>
+
+<details>
+<summary><b>How does the language option work, and where is the setting stored?</b></summary>
+
+All texts live in [`strings.py`](src/passgen/strings.py), one dictionary per
+language with identical keys. Even the command letters (`n` for números versus
+`d` for digits) are defined there. Adding a language only takes another
+dictionary.
+
+On first launch the app reads the system locale: any `es…` locale selects
+Spanish, everything else English. When you click ES | EN, it saves just the
+language code with Qt's `QSettings`, in the normal per-user place for your
+system:
+
+- **Windows:** the registry under `HKEY_CURRENT_USER\Software\SecurePasswordGenerator`
+- **macOS:** a preferences file in `~/Library/Preferences`
+- **Linux:** `~/.config/SecurePasswordGenerator/`
+
+An invalid stored value is ignored in favour of the system locale.
+
+</details>
+
+### Tests and reliability
+
+<details>
+<summary><b>Why does this project have tests?</b></summary>
+
+A password generator can look fine while quietly breaking a rule, for example
+by dropping digits or accepting a length of 4. Tests check those rules
+automatically on every change, so mistakes are caught before a release
+instead of by users.
+
+</details>
+
+<details>
+<summary><b>How do we know the program works?</b></summary>
+
+Several layers, from small to large:
+
+1. **138 automated tests** with pytest, all passing at the time of writing.
+2. **Rule checks that repeat.** For each of the 7 possible category
+   combinations, the generator tests produce **200 passwords** to confirm every
+   chosen category is present, and another 200 to confirm excluded ones never
+   appear. The dialog tests repeat their option checks 50 times per case.
+3. **CLI tests** run the command-line interface with real arguments and check
+   output, error messages and exit codes.
+4. **GUI smoke tests** build the real window offscreen (no screen needed),
+   click the ES | EN toggle, type answers and check that a valid password
+   appears and gets copied.
+5. **`--self-test`**: before a release is published, each packaged app is
+   started on its own system to confirm it opens and loads its bundled font.
+6. **CI**: all of the above runs automatically on Windows, macOS and Linux
+   with Python 3.10, 3.11, 3.12 and 3.13 (12 combinations).
+
+What the tests do **not** prove is that passwords are unguessable. That rests
+on the operating system's secure random source, which the program uses through
+`secrets`. The tests check that the rules hold, not the quality of the
+randomness.
+
+</details>
+
+<details>
+<summary><b>What does each test file cover?</b></summary>
+
+| File | Tests | What it checks |
+| --- | ---: | --- |
+| [`test_generator.py`](tests/test_generator.py) | 32 | Exact length, selected categories present and excluded ones absent (200 runs each), errors for too short, too long, wrong type and no categories, consecutive passwords differ |
+| [`test_session.py`](tests/test_session.py) | 55 | The guided dialog in both languages: valid flow, invalid answers, each language's own keys, Enter for another, copy, language switch |
+| [`test_strings.py`](tests/test_strings.py) | 30 | Both languages have the same keys and placeholders, no empty texts, locale detection, saved-language fallback |
+| [`test_cli.py`](tests/test_cli.py) | 8 | Flags, interactive prompt, friendly errors and exit codes |
+| [`test_gui.py`](tests/test_gui.py) | 13 | Offscreen window: padlock shape and click-through mask, ES \| EN toggle, typing a full flow, copy, settings, opaque fallback |
+
+</details>
+
+<details>
+<summary><b>How do I run the tests myself?</b></summary>
 
 ```bash
-pip install -r requirements-gui.txt    # pytest + PySide6_Essentials
+pip install -e ".[gui]" -r requirements-dev.txt
 python -m pytest
 ```
 
-The GUI smoke tests run offscreen (`QT_QPA_PLATFORM=offscreen` is set
-automatically) and use a temporary settings file, so they never touch your real
-settings. Without PySide6 they are skipped. CI runs the full suite on Linux,
-Windows and macOS with Python 3.10 to 3.13, and again inside Docker.
+The GUI tests run offscreen and use a temporary settings file, so they never
+touch your real settings. Without PySide6 installed they are skipped.
 
-## Building the desktop app
+</details>
+
+<details>
+<summary><b>What is CI, and why do we use it?</b></summary>
+
+CI (continuous integration) means GitHub automatically runs all the tests
+every time code is pushed or a pull request is opened. It runs them on three
+operating systems and four Python versions, which nobody would do by hand
+every time. A red result blocks problems before they reach a release.
+
+</details>
+
+<details>
+<summary><b>What do the badges mean?</b></summary>
+
+- **CI**: whether the latest test run on GitHub passed (green) or failed (red).
+- **License: MIT**: you can use, change and share the code freely, keeping the
+  copyright notice.
+- **Release**: the newest published version available for download.
+
+</details>
+
+<details>
+<summary><b>Why is PySide6 pinned below 6.12 on Python 3.10 and 3.11?</b></summary>
+
+CI caught a crash: with PySide6 6.12.0 on Python 3.10/3.11, every test passed
+and then Python aborted with `Fatal Python error: none_dealloc` (exit code 134).
+We measured the cause. In that version, every Qt method that returns nothing
+"forgets" one reference to Python's `None` object. After a few thousand calls
+the count reaches zero and Python stops. Python 3.12+ is immune because `None`
+can never be freed there. Versions 6.10 and 6.11 are clean, so 3.10/3.11 stay
+below 6.12 until a fixed release is verified.
+
+</details>
+
+<details>
+<summary><b>What are the known limitations?</b></summary>
+
+- The downloads are **not code-signed**, so Windows and macOS warn on first launch.
+- The macOS download is **Apple Silicon only**. Intel Macs need to run from source.
+- On Linux the transparent shape needs a **compositor**, and the download
+  needs **glibc 2.35+**.
+- Password quality depends on the **operating system's secure random
+  source**, which is trusted, not verified, by this program.
+- `c` leaves the password on the **clipboard** until you copy something else.
+
+</details>
+
+### Technical choices
+
+<details>
+<summary><b>Why Python, and why PySide6/Qt for the interface?</b></summary>
+
+Python's standard library already has a vetted secure random module
+(`secrets`), and the code stays short and readable. Qt, through its official
+Python binding PySide6, can draw a custom-shaped, transparent window with
+smooth vector graphics on Windows, macOS and Linux from a single codebase. The
+core generator itself has no dependencies at all.
+
+</details>
+
+<details>
+<summary><b>Why a padlock-shaped window, and how is the shape made?</b></summary>
+
+The padlock makes the purpose obvious at a glance, and the Y2K style makes a
+small utility fun to use. It is not an image: the shackle, body, bevels and
+keyhole are drawn as vector paths with gradients
+([`padlock.py`](src/passgen/gui/padlock.py)). The window is frameless and
+transparent, and a mask cut from the same outline makes the empty areas,
+including the hole in the shackle, pass clicks to the windows behind it.
+
+</details>
+
+<details>
+<summary><b>Why is the app distributed as a folder, not a single file?</b></summary>
+
+A single-file build has to unpack about 75 MB of Qt into a temporary folder
+on **every** launch, which takes seconds. Antivirus tools also flag that
+self-extracting behaviour far more often. The folder version starts instantly,
+gets fewer false alarms, and becomes a proper `.app` bundle on macOS. Since the
+download is compressed anyway, you still get one file to download.
+
+</details>
+
+<details>
+<summary><b>How can I contribute or report a bug?</b></summary>
+
+Open an issue on the **[Issues page](https://github.com/AlvaroAramayoChain/SecurePasswordGenerator/issues)**
+with what you did, what you expected and your system. Pull requests are
+welcome: please keep code and comments in English, add a test for the change,
+and make sure `python -m pytest` passes.
+
+</details>
+
+## For developers
+
+<details>
+<summary><b>Project structure</b></summary>
+
+```text
+src/passgen/
+├── generator.py      # generate_password(): the secure core, no UI
+├── exceptions.py     # InvalidLengthError, NoCharacterSetSelectedError, ...
+├── session.py        # guided dialog state machine (no Qt)
+├── strings.py        # all texts, one dictionary per language
+├── cli.py            # command-line interface
+└── gui/              # PySide6 window, painting, terminal, theme, assets
+tests/                # pytest suite (138 tests)
+tools/make_assets.py  # renders the demo GIFs and app icons
+build.py              # PyInstaller packaging
+main.py               # entry point: GUI by default, --cli for the CLI
+```
+
+Use the generator from your own code:
+
+```python
+from passgen import generate_password
+
+password = generate_password(16, use_symbols=False)
+```
+
+</details>
+
+<details>
+<summary><b>Command-line options</b></summary>
+
+```text
+python main.py --cli [-l LENGTH] [--no-letters] [--no-digits] [--no-symbols]
+```
+
+Without `-l`, it asks for the length. Exit codes: `0` success, `2` invalid
+input, `130` cancelled.
+
+</details>
+
+<details>
+<summary><b>Building the desktop app</b></summary>
 
 ```bash
-pip install -e ".[build]"              # PySide6_Essentials, PyInstaller, Pillow
+pip install -e ".[build]"
 python build.py --verify --archive
 ```
 
-This creates `dist/SecurePasswordGenerator/` (`.app` on macOS), runs the
-packaged app's offscreen self-test, and writes
-`dist/SecurePasswordGenerator-<os>.zip` (`.tar.gz` on Linux). PyInstaller cannot
-cross-compile, so build on each operating system you want to ship.
+This writes `dist/SecurePasswordGenerator/` (a `.app` on macOS), runs the
+packaged app's `--self-test`, and creates `dist/SecurePasswordGenerator-<os>.zip`
+(`.tar.gz` on Linux). Build on each system you want to ship, because
+PyInstaller cannot cross-compile. `python tools/make_assets.py` regenerates
+the demo GIFs and icons.
 
-The default is a **one-folder** build. `python build.py --onefile` produces a
-single executable instead:
+</details>
 
-|                     | One folder (default)          | One file                                    |
-| ------------------- | ----------------------------- | ------------------------------------------- |
-| Startup             | Instant                       | 2-5 s: unpacks Qt to a temp folder each run |
-| Antivirus           | Rarely flagged                | Self-extracting exes are flagged far more often |
-| macOS               | Proper `.app` bundle          | Deprecated by PyInstaller with `--windowed` |
-| Distribution        | A folder (shipped zipped)     | A single file                               |
-
-To regenerate the icons and README screenshots from the drawing code, run
-`python tools/make_assets.py`.
-
-## Publishing a release
-
-Push a version tag. The [release workflow](.github/workflows/release.yml)
-builds, self-tests and archives the app on Windows, macOS and Linux, then
-attaches the three archives to a new GitHub Release:
+<details>
+<summary><b>Publishing a release</b></summary>
 
 ```bash
-git tag v1.0.0
-git push origin v1.0.0
+git tag v1.0.0 && git push --tags
 ```
+
+The [release workflow](.github/workflows/release.yml) tests and builds the app
+on Windows, macOS and Linux, self-tests each build, and attaches the three
+archives to a new GitHub Release.
+
+</details>
 
 ## Security
 
-- Every character is chosen with `secrets.choice`, and the final order is
-  shuffled with `secrets.SystemRandom`. Both use the operating system's
-  cryptographically secure random number generator.
-- One character is drawn from each selected category, the rest come from the
-  combined pool, and the result is securely shuffled, so required characters
-  never sit at predictable positions.
-- **Nothing is stored, logged or sent anywhere.** Passwords exist only in
-  memory and on your screen, and the app makes no network connections. The
-  only persisted setting is the interface language code.
-- The `c` command puts the password on the system clipboard, where it stays
-  until you copy something else. Clear it after pasting if others use your
-  computer.
-
-## Roadmap
-
-- [x] Secure generation backend with a reusable API
-- [x] Command-line interface
-- [x] Docker image and cross-platform CI
-- [x] Padlock-shaped desktop GUI, packaged natively for Windows, macOS and Linux
-- [x] Spanish and English interface with automatic detection
-- [ ] Code-signed and notarized builds
-- [ ] Intel (x86_64) macOS build
+Passwords come from Python's `secrets` module, which uses your operating
+system's cryptographically secure random source. Nothing is stored, logged or
+sent anywhere, and the app never connects to the internet. The only thing it
+remembers is your language choice.
 
 ## License
 
-Released under the [MIT License](LICENSE). The bundled
-[VT323](https://fonts.google.com/specimen/VT323) font is © The VT323 Project
-Authors, licensed under the
+[MIT](LICENSE) © Alvaro Aramayo Chain. The bundled
+[VT323](https://fonts.google.com/specimen/VT323) font is licensed under the
 [SIL Open Font License 1.1](src/passgen/gui/assets/OFL.txt).
