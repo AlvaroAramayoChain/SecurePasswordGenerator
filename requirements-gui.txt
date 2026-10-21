@@ -1,7 +1,0 @@
-# Development requirements including the desktop GUI (not used by Docker).
-# Keep in sync with the [gui] extra in pyproject.toml, which explains the pins:
-# PySide6 6.12.0 leaks references to None on Python < 3.12 and aborts the
-# interpreter, so those versions stay below 6.12.
--r requirements-dev.txt
-PySide6_Essentials>=6.10.1,<6.12; python_version < "3.12"
-PySide6_Essentials>=6.10.1,<6.13; python_version >= "3.12"

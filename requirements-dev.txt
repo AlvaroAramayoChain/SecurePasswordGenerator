@@ -1,1 +1,7 @@
+# Development requirements: test runner and the desktop GUI.
+# Keep the PySide6 pins in sync with the [gui] extra in pyproject.toml, which
+# explains them: PySide6 6.12.0 leaks references to None on Python < 3.12 and
+# aborts the interpreter, so those versions stay below 6.12.
 pytest>=8.0
+PySide6_Essentials>=6.10.1,<6.12; python_version < "3.12"
+PySide6_Essentials>=6.10.1,<6.13; python_version >= "3.12"

@@ -34,7 +34,7 @@ def _teardown_qt(app: object) -> None:
 def qapp() -> Iterator[object]:
     """Create one offscreen ``QApplication`` for the whole test session.
 
-    Skips the requesting test if PySide6 is not installed (e.g. in Docker).
+    Skips the requesting test if PySide6 is not installed.
 
     Yields:
         The application instance; it is torn down after the last test.

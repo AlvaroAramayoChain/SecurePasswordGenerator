@@ -1,2 +1,2 @@
-# Normalize line endings so files behave the same on Windows, Linux and in Docker.
+# Normalize line endings so files behave the same on Windows, macOS and Linux.
 * text=auto eol=lf
