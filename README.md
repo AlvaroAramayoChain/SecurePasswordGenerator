@@ -404,7 +404,7 @@ src/passgen/
 ├── cli.py            # command-line interface
 └── gui/              # PySide6 window, painting, terminal, theme, assets
 tests/                # pytest suite (138 tests)
-tools/make_assets.py  # renders the demo GIFs and app icons
+tools/make_assets.py  # renders the demo GIFs, social preview and app icons
 build.py              # PyInstaller packaging
 main.py               # entry point: GUI by default, --cli for the CLI
 ```
@@ -443,7 +443,8 @@ This writes `dist/SecurePasswordGenerator/` (a `.app` on macOS), runs the
 packaged app's `--self-test`, and creates `dist/SecurePasswordGenerator-<os>.zip`
 (`.tar.gz` on Linux). Build on each system you want to ship, because
 PyInstaller cannot cross-compile. `python tools/make_assets.py` regenerates
-the demo GIFs and icons.
+the demo GIFs, the social preview (`docs/social-preview.png`) and the icons;
+add `--demo`, `--social` or `--icons` to make just one of them.
 
 </details>
 

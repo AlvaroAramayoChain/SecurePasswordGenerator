@@ -1,14 +1,15 @@
-"""Render the README demo animations and the application icons from the live GUI code.
+"""Render the README demos, the social preview and the app icons from the live GUI code.
 
 Usage::
 
-    python tools/make_assets.py          # demo GIFs and icons
-    python tools/make_assets.py demo     # docs/demo-<lang>.gif only
-    python tools/make_assets.py icons    # src/passgen/gui/assets/icon.* only
+    python tools/make_assets.py            # everything below
+    python tools/make_assets.py --demo     # docs/demo-<lang>.gif
+    python tools/make_assets.py --social   # docs/social-preview.png
+    python tools/make_assets.py --icons    # src/passgen/gui/assets/icon.*
 
 Runs with the offscreen Qt platform, so no display is needed. Requires the
 ``gui`` extra plus Pillow (included in the ``build`` extra). The passwords shown
-in the demo are freshly generated throwaway values.
+are freshly generated throwaway values.
 """
 
 import argparse
@@ -22,13 +23,26 @@ sys.path.insert(0, str(ROOT / "src"))
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PIL import Image  # noqa: E402
-from PySide6.QtCore import QSettings, Qt  # noqa: E402
-from PySide6.QtGui import QImage  # noqa: E402
+from PySide6.QtCore import QPointF, QRectF, QSettings, Qt  # noqa: E402
+from PySide6.QtGui import (  # noqa: E402
+    QColor,
+    QFont,
+    QFontDatabase,
+    QFontMetricsF,
+    QImage,
+    QLinearGradient,
+    QPainter,
+    QPainterPath,
+    QPen,
+    QPixmap,
+    QRadialGradient,
+)
 from PySide6.QtTest import QTest  # noqa: E402
 
 from passgen.gui import theme  # noqa: E402
 from passgen.gui.app import create_application  # noqa: E402
 from passgen.gui.padlock import render_icon  # noqa: E402
+from passgen.gui.terminal import load_terminal_font, missing_glyphs  # noqa: E402
 from passgen.gui.window import PadlockWindow  # noqa: E402
 from passgen.strings import TEXTS  # noqa: E402
 
@@ -44,6 +58,29 @@ TRANSPARENT_INDEX = 255
 ALPHA_THRESHOLD = 128
 PNG_ICON_SIZE = 512
 ICO_SIZES = (16, 24, 32, 48, 64, 128, 256)
+
+# Social preview: laid out in 1280x640 logical pixels, painted at 2x.
+SOCIAL_PATH = DOCS_DIR / "social-preview.png"
+SOCIAL_WIDTH = 1280
+SOCIAL_HEIGHT = 640
+SOCIAL_SUPERSAMPLE = 2
+SOCIAL_SAFE_MARGIN = 80
+SOCIAL_LANGUAGE = "en"
+SOCIAL_MAX_BYTES = 1_000_000
+SOCIAL_TITLE_LINES = ("Secure", "Password", "Generator")
+SOCIAL_SUBTITLE = "Random, secure passwords on your desktop"
+SOCIAL_TEXT_GAP = 56
+SOCIAL_TITLE_MAX_PX = 112
+SOCIAL_SUBTITLE_PX = 34
+SOCIAL_LINE_SPACING = 0.92
+SOCIAL_SUBTITLE_GAP = 26
+SOCIAL_TITLE_OUTLINE = 6
+SOCIAL_CURSOR_WIDTH_RATIO = 0.5
+SOCIAL_GRID_STEP = 40
+SOCIAL_GRID_ALPHA = 22
+SOCIAL_GLOW_ALPHA = 70
+SOCIAL_BG_TOP = "#0B1C5C"
+SOCIAL_BG_BOTTOM = "#03050B"
 
 Frame = tuple[Image.Image, int]
 
@@ -205,6 +242,172 @@ def make_demos() -> None:
             print(f"wrote {target.relative_to(ROOT)} ({len(frames)} frames, {size_kb:.0f} KB)")
 
 
+def render_window_pixmap(settings: QSettings, device_ratio: float) -> QPixmap:
+    """Render the real window, showing a fresh demo password, at a given pixel ratio.
+
+    Args:
+        settings: A throwaway settings store.
+        device_ratio: Device pixels per logical pixel for the vector rendering.
+
+    Returns:
+        A transparent pixmap of the window with ``device_ratio`` applied.
+    """
+    window = PadlockWindow(settings=settings, opaque=False)
+    window.set_language(SOCIAL_LANGUAGE)
+    window.show()
+    for answer in (DEMO_LENGTH, ""):
+        window.input.setText(answer)
+        window.submit_input()
+    pixmap = QPixmap(round(window.width() * device_ratio), round(window.height() * device_ratio))
+    pixmap.setDevicePixelRatio(device_ratio)
+    pixmap.fill(Qt.GlobalColor.transparent)
+    window.render(pixmap)
+    window.close()
+    return pixmap
+
+
+def paint_social_background(painter: QPainter, glow_center: QPointF) -> None:
+    """Paint the opaque navy gradient, a faint Y2K grid and a soft golden glow.
+
+    Args:
+        painter: A painter in 1280x640 logical coordinates.
+        glow_center: Where the glow behind the padlock is centered.
+    """
+    gradient = QLinearGradient(0, 0, 0, SOCIAL_HEIGHT)
+    gradient.setColorAt(0.0, QColor(SOCIAL_BG_TOP))
+    gradient.setColorAt(1.0, QColor(SOCIAL_BG_BOTTOM))
+    painter.fillRect(QRectF(0, 0, SOCIAL_WIDTH, SOCIAL_HEIGHT), gradient)
+    grid = QColor(theme.FRAME_LIGHT)
+    grid.setAlpha(SOCIAL_GRID_ALPHA)
+    painter.setPen(QPen(grid, 1))
+    for x in range(0, SOCIAL_WIDTH + 1, SOCIAL_GRID_STEP):
+        painter.drawLine(QPointF(x, 0), QPointF(x, SOCIAL_HEIGHT))
+    for y in range(0, SOCIAL_HEIGHT + 1, SOCIAL_GRID_STEP):
+        painter.drawLine(QPointF(0, y), QPointF(SOCIAL_WIDTH, y))
+    glow = QRadialGradient(glow_center, SOCIAL_HEIGHT / 2)
+    warm = QColor(theme.GOLD_MID)
+    warm.setAlpha(SOCIAL_GLOW_ALPHA)
+    glow.setColorAt(0.0, warm)
+    warm.setAlpha(0)
+    glow.setColorAt(1.0, warm)
+    painter.fillRect(QRectF(0, 0, SOCIAL_WIDTH, SOCIAL_HEIGHT), glow)
+
+
+def social_font(pixel_size: int) -> QFont:
+    """Return the bundled VT323 font, or the system monospace font if glyphs are missing.
+
+    Args:
+        pixel_size: The font size in pixels.
+
+    Returns:
+        A font that can draw every character of the title and subtitle.
+    """
+    font = load_terminal_font(pixel_size)
+    if missing_glyphs(font, "".join(SOCIAL_TITLE_LINES) + SOCIAL_SUBTITLE):
+        font = QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont)
+        font.setPixelSize(pixel_size)
+    return font
+
+
+def fit_title_font(max_width: float) -> QFont:
+    """Pick the largest title size (up to the maximum) whose longest line fits.
+
+    Args:
+        max_width: The available width in logical pixels.
+
+    Returns:
+        The title font.
+    """
+    font = social_font(SOCIAL_TITLE_MAX_PX)
+    widest = max(QFontMetricsF(font).horizontalAdvance(line) for line in SOCIAL_TITLE_LINES)
+    if widest > max_width:
+        font.setPixelSize(int(SOCIAL_TITLE_MAX_PX * max_width / widest))
+    return font
+
+
+def paint_social_text(painter: QPainter, area: QRectF) -> None:
+    """Paint the gold, outlined title and the subtitle with a block cursor, centered vertically.
+
+    Args:
+        painter: A painter in 1280x640 logical coordinates.
+        area: The safe text area.
+    """
+    title_font = fit_title_font(area.width())
+    subtitle_font = social_font(SOCIAL_SUBTITLE_PX)
+    title_metrics, subtitle_metrics = QFontMetricsF(title_font), QFontMetricsF(subtitle_font)
+    line_height = title_metrics.height() * SOCIAL_LINE_SPACING
+    block_height = (line_height * len(SOCIAL_TITLE_LINES) + SOCIAL_SUBTITLE_GAP
+                    + subtitle_metrics.height())
+    top = area.center().y() - block_height / 2
+    title = QPainterPath()
+    for index, line in enumerate(SOCIAL_TITLE_LINES):
+        baseline = top + title_metrics.ascent() + index * line_height
+        title.addText(QPointF(area.left(), baseline), title_font, line)
+    fill = QLinearGradient(0, top, 0, top + line_height * len(SOCIAL_TITLE_LINES))
+    fill.setColorAt(0.0, QColor(theme.GOLD_HIGHLIGHT))
+    fill.setColorAt(0.4, QColor(theme.GOLD_LIGHT))
+    fill.setColorAt(1.0, QColor(theme.GOLD_DARK))
+    painter.strokePath(title, QPen(QColor(theme.OUTLINE), SOCIAL_TITLE_OUTLINE,
+                                   Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap,
+                                   Qt.PenJoinStyle.RoundJoin))
+    painter.fillPath(title, fill)
+    subtitle_top = top + line_height * len(SOCIAL_TITLE_LINES) + SOCIAL_SUBTITLE_GAP
+    painter.setFont(subtitle_font)
+    painter.setPen(QColor(theme.TEXT_OUTPUT))
+    baseline = subtitle_top + subtitle_metrics.ascent()
+    painter.drawText(QPointF(area.left(), baseline), SOCIAL_SUBTITLE)
+    cursor_left = area.left() + subtitle_metrics.horizontalAdvance(SOCIAL_SUBTITLE + " ")
+    cursor = QRectF(cursor_left, subtitle_top, subtitle_metrics.height() * SOCIAL_CURSOR_WIDTH_RATIO,
+                    subtitle_metrics.height())
+    painter.fillRect(cursor, QColor(theme.CURSOR))
+
+
+def save_png_under_limit(image: QImage, target: Path) -> None:
+    """Save ``image`` as an optimized PNG, quantizing only if it exceeds the size limit.
+
+    Args:
+        image: The final 1280x640 image.
+        target: The PNG file to write.
+    """
+    picture = to_pillow(image).convert("RGB")
+    picture.save(target, optimize=True)
+    if target.stat().st_size > SOCIAL_MAX_BYTES:
+        picture.quantize(colors=GIF_COLORS + 1, method=Image.Quantize.MEDIANCUT).save(
+            target, optimize=True)
+
+
+def make_social() -> None:
+    """Write ``docs/social-preview.png``: padlock window, title and subtitle, 1280x640."""
+    DOCS_DIR.mkdir(exist_ok=True)
+    safe = QRectF(SOCIAL_SAFE_MARGIN, SOCIAL_SAFE_MARGIN, SOCIAL_WIDTH - 2 * SOCIAL_SAFE_MARGIN,
+                  SOCIAL_HEIGHT - 2 * SOCIAL_SAFE_MARGIN)
+    scale = safe.height() / theme.WINDOW_HEIGHT
+    with tempfile.TemporaryDirectory() as folder:
+        settings = QSettings(str(Path(folder) / "settings.ini"), QSettings.Format.IniFormat)
+        window = render_window_pixmap(settings, SOCIAL_SUPERSAMPLE * scale)
+    lock = QRectF(safe.left(), safe.top(), theme.WINDOW_WIDTH * scale, safe.height())
+    canvas = QImage(SOCIAL_WIDTH * SOCIAL_SUPERSAMPLE, SOCIAL_HEIGHT * SOCIAL_SUPERSAMPLE,
+                    QImage.Format.Format_RGB32)
+    painter = QPainter(canvas)
+    painter.setRenderHints(QPainter.RenderHint.Antialiasing
+                           | QPainter.RenderHint.TextAntialiasing
+                           | QPainter.RenderHint.SmoothPixmapTransform)
+    painter.scale(SOCIAL_SUPERSAMPLE, SOCIAL_SUPERSAMPLE)
+    paint_social_background(painter, lock.center())
+    # The window was rendered at exactly the canvas's device resolution, so
+    # its pixels map 1:1 onto the lock rectangle.
+    window.setDevicePixelRatio(1)
+    painter.drawPixmap(lock, window, QRectF(window.rect()))
+    text_area = safe.adjusted(lock.width() + SOCIAL_TEXT_GAP, 0, 0, 0)
+    paint_social_text(painter, text_area)
+    painter.end()
+    final = canvas.scaled(SOCIAL_WIDTH, SOCIAL_HEIGHT, Qt.AspectRatioMode.IgnoreAspectRatio,
+                          Qt.TransformationMode.SmoothTransformation)
+    save_png_under_limit(final, SOCIAL_PATH)
+    size_kb = SOCIAL_PATH.stat().st_size / 1024
+    print(f"wrote {SOCIAL_PATH.relative_to(ROOT)} ({SOCIAL_WIDTH}x{SOCIAL_HEIGHT}, {size_kb:.0f} KB)")
+
+
 def make_icons() -> None:
     """Write ``icon.png`` and a multi-size ``icon.ico`` into the GUI assets."""
     png_path = ASSETS_DIR / "icon.png"
@@ -223,13 +426,18 @@ def main() -> int:
         The process exit code.
     """
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("what", nargs="?", choices=("all", "demo", "icons"), default="all")
+    parser.add_argument("--icons", action="store_true", help="app icons only")
+    parser.add_argument("--demo", action="store_true", help="demo GIFs only")
+    parser.add_argument("--social", action="store_true", help="social preview image only")
     args = parser.parse_args()
+    everything = not (args.icons or args.demo or args.social)
     create_application([sys.argv[0]])
-    if args.what in ("all", "icons"):
+    if everything or args.icons:
         make_icons()
-    if args.what in ("all", "demo"):
+    if everything or args.demo:
         make_demos()
+    if everything or args.social:
+        make_social()
     return 0
 
 
