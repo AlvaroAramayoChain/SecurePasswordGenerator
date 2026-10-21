@@ -53,7 +53,10 @@ DEMO_LENGTH = "16"
 TYPE_DELAY_MS = 220
 SHORT_PAUSE_MS = 1600
 LONG_PAUSE_MS = 2650
+PRESS_FRAME_MS = 300
 GIF_COLORS = 255
+PALETTE_BUTTONS_BOX = (360, 230, 464, 264)  # round title buttons, window coords
+PALETTE_BUTTONS_REPEAT = 4
 TRANSPARENT_INDEX = 255
 ALPHA_THRESHOLD = 128
 PNG_ICON_SIZE = 512
@@ -151,9 +154,17 @@ class DemoRecorder:
         """Submit the input field with the Enter key."""
         QTest.keyClick(self.window.input, Qt.Key.Key_Return)
 
+    def click_restart(self) -> None:
+        """Show the restart button pressed for a moment, then click it."""
+        button = self.window.restart_button
+        button.setDown(True)
+        self.snap(PRESS_FRAME_MS)
+        button.setDown(False)
+        QTest.mouseClick(button, Qt.MouseButton.LeftButton)
+
 
 def record_demo(language: str, settings: QSettings) -> list[Frame]:
-    """Record the guided flow: length, types, password, then another password.
+    """Record the guided flow: length, types, password, another password, then restart.
 
     Args:
         language: The interface language to show.
@@ -176,6 +187,8 @@ def record_demo(language: str, settings: QSettings) -> list[Frame]:
     recorder.pause(LONG_PAUSE_MS)
     recorder.press_enter()
     recorder.pause(LONG_PAUSE_MS)
+    recorder.click_restart()
+    recorder.pause(SHORT_PAUSE_MS)
     window.close()
     return recorder.frames
 
@@ -193,9 +206,17 @@ def build_palette(frames: list[Frame]) -> Image.Image:
         A palette image with ``GIF_COLORS`` colors.
     """
     first, last = frames[0][0].convert("RGB"), frames[-1][0].convert("RGB")
-    sheet = Image.new("RGB", (first.width, first.height * 2))
+    # The small round buttons (red, blue, yellow) are a tiny share of the
+    # pixels; repeating their strip gives them enough palette entries.
+    buttons = first.crop(PALETTE_BUTTONS_BOX)
+    strip_height = buttons.height * PALETTE_BUTTONS_REPEAT
+    sheet = Image.new("RGB", (first.width, first.height * 2 + strip_height))
     sheet.paste(first, (0, 0))
     sheet.paste(last, (0, first.height))
+    for row in range(PALETTE_BUTTONS_REPEAT):
+        for column in range(first.width // buttons.width):
+            sheet.paste(buttons, (column * buttons.width,
+                                  first.height * 2 + row * buttons.height))
     return sheet.quantize(colors=GIF_COLORS, method=Image.Quantize.MEDIANCUT)
 
 

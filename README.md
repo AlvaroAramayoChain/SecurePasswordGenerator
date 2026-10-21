@@ -13,9 +13,9 @@
 </p>
 
 <p align="center">
-  <img src="docs/demo-es.gif" width="300" alt="Demo in Spanish: the user types 16, then ln for letters and numbers, gets a random password, and presses Enter for another one">
+  <img src="docs/demo-es.gif" width="300" alt="Demo in Spanish: the user types 16, then ln for letters and numbers, gets a random password, presses Enter for another one, then clicks the restart button">
   &nbsp;
-  <img src="docs/demo-en.gif" width="300" alt="Demo in English: the user types 16, then ld for letters and digits, gets a random password, and presses Enter for another one">
+  <img src="docs/demo-en.gif" width="300" alt="Demo in English: the user types 16, then ld for letters and digits, gets a random password, presses Enter for another one, then clicks the restart button">
 </p>
 
 ## Installation instructions
@@ -95,6 +95,11 @@ python main.py --cli -l 20 --no-symbols
    (`ld` = letters and digits); in Spanish `l` letras, `n` números, `s` símbolos.
 3. **Your password** appears in the terminal.
 4. Press **Enter** for another one, or type **`c`** to copy it to the clipboard.
+
+To start over at any point, click the yellow **↻ restart** button next to the
+minimize and close buttons, or press **Ctrl+R** (**Cmd+R** on macOS). It
+clears the screen and forgets the last password, but leaves your clipboard
+alone.
 
 Click **ES | EN** on the padlock to switch language at any time. The app
 starts in your system's language and remembers your choice.
@@ -208,7 +213,9 @@ password) plus an optional "copy this" request.
 The window only draws those lines and handles the clipboard. Because the
 terminal never runs Python, it shows nothing but plain questions and answers.
 This split also lets the dialog be tested in milliseconds without opening a
-window.
+window. Restarting (↻ or Ctrl+R) and switching language both throw the old
+state machine away and start a brand-new one, so no earlier answer or
+password carries over.
 
 </details>
 
@@ -250,7 +257,7 @@ instead of by users.
 
 Several layers, from small to large:
 
-1. **138 automated tests** with pytest, all passing at the time of writing.
+1. **147 automated tests** with pytest, all passing at the time of writing.
 2. **Rule checks that repeat.** For each of the 7 possible category
    combinations, the generator tests produce **200 passwords** to confirm every
    chosen category is present, and another 200 to confirm excluded ones never
@@ -259,7 +266,7 @@ Several layers, from small to large:
    output, error messages and exit codes.
 4. **GUI smoke tests** build the real window offscreen (no screen needed),
    click the ES | EN toggle, type answers and check that a valid password
-   appears and gets copied.
+   appears and gets copied, and that restart starts cleanly at every step.
 5. **`--self-test`**: before a release is published, each packaged app is
    started on its own system to confirm it opens and loads its bundled font.
 6. **CI**: all of the above runs automatically on Windows, macOS and Linux
@@ -281,7 +288,7 @@ randomness.
 | [`test_session.py`](tests/test_session.py) | 55 | The guided dialog in both languages: valid flow, invalid answers, each language's own keys, Enter for another, copy, language switch |
 | [`test_strings.py`](tests/test_strings.py) | 30 | Both languages have the same keys and placeholders, no empty texts, locale detection, saved-language fallback |
 | [`test_cli.py`](tests/test_cli.py) | 8 | Flags, interactive prompt, friendly errors and exit codes |
-| [`test_gui.py`](tests/test_gui.py) | 13 | Offscreen window: padlock shape and click-through mask, ES \| EN toggle, typing a full flow, copy, settings, opaque fallback |
+| [`test_gui.py`](tests/test_gui.py) | 22 | Offscreen window: padlock shape and click-through mask, ES \| EN toggle, typing a full flow, copy, restart by button and Ctrl+R at every step, settings, opaque fallback |
 
 </details>
 
@@ -403,7 +410,7 @@ src/passgen/
 ├── strings.py        # all texts, one dictionary per language
 ├── cli.py            # command-line interface
 └── gui/              # PySide6 window, painting, terminal, theme, assets
-tests/                # pytest suite (138 tests)
+tests/                # pytest suite (147 tests)
 tools/make_assets.py  # renders the demo GIFs, social preview and app icons
 build.py              # PyInstaller packaging
 main.py               # entry point: GUI by default, --cli for the CLI
