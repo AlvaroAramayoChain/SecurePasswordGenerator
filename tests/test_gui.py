@@ -10,7 +10,7 @@ import pytest
 pytest.importorskip("PySide6", reason="GUI extra not installed")
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import QLocale, QPoint, QSettings, Qt  # noqa: E402
+from PySide6.QtCore import QLocale, QPoint, QSettings, Qt, QTimer  # noqa: E402
 from PySide6.QtGui import QGuiApplication  # noqa: E402
 from PySide6.QtTest import QTest  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
@@ -49,6 +49,9 @@ def window(qapp: QApplication, settings: QSettings) -> Iterator[PadlockWindow]:
     """
     widget = PadlockWindow(settings=settings, opaque=False)
     widget.show()
+    # Keyboard focus only exists inside the active window.
+    widget.activateWindow()
+    QTest.qWaitForWindowActive(widget)
     yield widget
     widget.close()
     widget.deleteLater()
@@ -171,6 +174,103 @@ def test_invalid_input_shows_error_without_crashing(window: PadlockWindow) -> No
     assert get_text("es", "error_not_number", value="abc") in window.terminal.plain_lines()
     _answer(window, "500")
     assert get_text("es", "error_length_range", min=8, max=128) in window.terminal.plain_lines()
+
+
+def _restart_with_button(window: PadlockWindow) -> None:
+    """Restart the flow by clicking the round restart button.
+
+    Args:
+        window: The window under test.
+    """
+    QTest.mouseClick(window.restart_button, Qt.MouseButton.LeftButton)
+
+
+def _restart_with_shortcut(window: PadlockWindow) -> None:
+    """Restart the flow with the Ctrl+R keyboard shortcut.
+
+    Args:
+        window: The window under test.
+    """
+    window.activateWindow()
+    QTest.qWaitForWindowActive(window)
+    QTest.keyClick(window.input, Qt.Key.Key_R, Qt.KeyboardModifier.ControlModifier)
+
+
+RESTART_TRIGGERS = pytest.mark.parametrize(
+    "restart", [_restart_with_button, _restart_with_shortcut], ids=["button", "ctrl-r"]
+)
+
+
+def _opening_lines(language: str) -> list[str]:
+    """Return the terminal lines shown when the flow starts.
+
+    Args:
+        language: A supported language code.
+
+    Returns:
+        The welcome line and the length question.
+    """
+    return [get_text(language, "welcome"), get_text(language, "ask_length", min=8, max=128)]
+
+
+def _assert_fresh_start(window: PadlockWindow, language: str) -> None:
+    """Check the window shows a clean flow start with a ready input field.
+
+    Args:
+        window: The window under test.
+        language: The expected language.
+    """
+    assert window.language == language
+    assert window.terminal.plain_lines() == _opening_lines(language)
+    assert window.terminal.toPlainText().endswith(theme.PROMPT_MARKER + " ")
+    assert any(timer.isActive() for timer in window.terminal.findChildren(QTimer))
+    assert window.input.text() == ""
+    assert QApplication.focusWidget() is window.input
+
+
+@RESTART_TRIGGERS
+@pytest.mark.parametrize("language", SUPPORTED_LANGUAGES)
+def test_restart_after_password(window: PadlockWindow, language: str, restart) -> None:
+    """Restarting after a password clears it, keeps the language and clipboard, and works again."""
+    _click_language(window, language)
+    keys = TEXTS[language]
+    _answer(window, "12")
+    _answer(window, "")
+    old_password = _last_password(window)
+    QGuiApplication.clipboard().setText("clipboard stays")
+    window.input.setText("half-typed")
+    restart(window)
+    _assert_fresh_start(window, language)
+    assert old_password not in window.terminal.toPlainText()
+    assert QGuiApplication.clipboard().text() == "clipboard stays"
+    _answer(window, "10")
+    _answer(window, keys["key_digits"])
+    password = _last_password(window)
+    assert len(password) == 10 and password.isdigit()
+
+
+@RESTART_TRIGGERS
+@pytest.mark.parametrize("answers", [(), ("12",)], ids=["at-startup", "after-length"])
+def test_restart_mid_flow(window: PadlockWindow, answers: tuple[str, ...], restart) -> None:
+    """Restart works right after startup and while the types question is pending."""
+    for language in SUPPORTED_LANGUAGES:
+        _click_language(window, language)
+        for answer in answers:
+            _answer(window, answer)
+        restart(window)
+        _assert_fresh_start(window, language)
+        _answer(window, "abc")
+        assert get_text(language, "error_not_number", value="abc") in window.terminal.plain_lines()
+
+
+def test_restart_tooltip_follows_language(window: PadlockWindow) -> None:
+    """The restart tooltip is localized and updates on language switches."""
+    tooltips = set()
+    for language in SUPPORTED_LANGUAGES:
+        _click_language(window, language)
+        assert window.restart_button.toolTip() == get_text(language, "tooltip_restart")
+        tooltips.add(window.restart_button.toolTip())
+    assert len(tooltips) == len(SUPPORTED_LANGUAGES)
 
 
 def test_invalid_stored_language_falls_back_to_locale(qapp: QApplication,
