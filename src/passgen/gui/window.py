@@ -8,10 +8,12 @@ from PySide6.QtGui import (
     QColor,
     QFont,
     QGuiApplication,
+    QKeySequence,
     QLinearGradient,
     QMouseEvent,
     QPainter,
     QPen,
+    QShortcut,
 )
 from PySide6.QtWidgets import QLineEdit, QWidget
 
@@ -23,6 +25,8 @@ from passgen.session import Session, StepResult
 from passgen.strings import SUPPORTED_LANGUAGES, get_text, resolve_language
 
 TOGGLE_SEPARATOR = "|"
+# Qt maps "Ctrl" to the Command key on macOS, so this is Cmd+R there.
+RESTART_SHORTCUT = "Ctrl+R"
 
 
 class LanguageToggle(QWidget):
@@ -271,7 +275,6 @@ class PadlockWindow(QWidget):
         self._connect_signals()
         stored = self._settings.value(theme.SETTINGS_LANGUAGE_KEY)
         language = resolve_language(stored, QLocale.system().name())
-        self._session = Session(language)
         self._apply_language(language, persist=False)
 
     # --- Construction -------------------------------------------------------
@@ -306,9 +309,9 @@ class PadlockWindow(QWidget):
     def _build_children(self) -> None:
         """Create the title buttons, language toggle, terminal and input row."""
         self.minimize_button = RoundButton(RoundButtonKind.MINIMIZE, self)
-        self.maximize_button = RoundButton(RoundButtonKind.MAXIMIZE, self)
+        self.restart_button = RoundButton(RoundButtonKind.RESTART, self)
         self.close_button = RoundButton(RoundButtonKind.CLOSE, self)
-        buttons = (self.minimize_button, self.maximize_button, self.close_button)
+        buttons = (self.minimize_button, self.restart_button, self.close_button)
         for button, center_x in zip(buttons, theme.ROUND_BUTTON_CENTERS_X):
             button.move(center_x - button.width() // 2,
                         theme.ROUND_BUTTON_CENTER_Y - button.height() // 2)
@@ -328,8 +331,11 @@ class PadlockWindow(QWidget):
         self.run_button.setGeometry(run_button_rect())
 
     def _connect_signals(self) -> None:
-        """Wire buttons, the input field and the language toggle."""
+        """Wire buttons, the restart shortcut, the input field and the language toggle."""
         self.minimize_button.clicked.connect(self.showMinimized)
+        self.restart_button.clicked.connect(self.restart)
+        self.restart_shortcut = QShortcut(QKeySequence(RESTART_SHORTCUT), self)
+        self.restart_shortcut.activated.connect(self.restart)
         self.close_button.clicked.connect(self.close)
         self.run_button.clicked.connect(self.submit_input)
         self.input.returnPressed.connect(self.submit_input)
@@ -358,6 +364,28 @@ class PadlockWindow(QWidget):
         self._show(self._session.submit(text))
         self.input.setFocus()
 
+    def restart(self) -> None:
+        """Start the guided flow over in the current language (button or Ctrl+R).
+
+        The clipboard is left untouched.
+        """
+        self._restart_flow(self.language)
+
+    def _restart_flow(self, language: str) -> None:
+        """Replace the session with a fresh one and show its opening lines.
+
+        A new ``Session`` object means no earlier password or answer survives.
+        Used by both the restart button and language switches.
+
+        Args:
+            language: A supported language code.
+        """
+        self._session = Session(language)
+        self.input.clear()
+        self.terminal.clear_output()
+        self._show(self._session.start())
+        self.input.setFocus()
+
     def _apply_language(self, language: str, persist: bool) -> None:
         """Update every visible text and restart the guided flow.
 
@@ -367,21 +395,17 @@ class PadlockWindow(QWidget):
         """
         if persist:
             self._settings.setValue(theme.SETTINGS_LANGUAGE_KEY, language)
-        result = self._session.switch_language(language)
         self.setWindowTitle(get_text(language, "window_title"))
         self.input.setPlaceholderText(get_text(language, "placeholder"))
         self.run_button.setText(get_text(language, "run_button"))
         self.run_button.setToolTip(get_text(language, "tooltip_run"))
         self.minimize_button.setToolTip(get_text(language, "tooltip_minimize"))
-        self.maximize_button.setToolTip(get_text(language, "tooltip_maximize"))
+        self.restart_button.setToolTip(get_text(language, "tooltip_restart"))
         self.close_button.setToolTip(get_text(language, "tooltip_close"))
         self.language_toggle.setToolTip(get_text(language, "tooltip_language"))
         self.language_toggle.set_active_language(language)
-        self.input.clear()
-        self.terminal.clear_output()
-        self._show(result)
+        self._restart_flow(language)
         self.update()
-        self.input.setFocus()
 
     def _show(self, result: StepResult) -> None:
         """Display a session step and perform its clipboard request.

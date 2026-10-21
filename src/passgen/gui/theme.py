@@ -146,7 +146,7 @@ SCROLL_ARROW: Final[str] = "#0A1C66"
 
 # --- Colors: buttons --------------------------------------------------------
 MINIMIZE_COLOR: Final[str] = "#2F7FFF"
-MAXIMIZE_COLOR: Final[str] = "#F7BE16"
+RESTART_COLOR: Final[str] = "#F7BE16"
 CLOSE_COLOR: Final[str] = "#EC3A2E"
 GLYPH_LIGHT: Final[str] = "#FFFFFF"
 GLYPH_DARK: Final[str] = "#3A2400"

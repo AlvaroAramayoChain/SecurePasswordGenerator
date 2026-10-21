@@ -1,5 +1,6 @@
 """Custom-painted buttons: the round title buttons and the green Run button."""
 
+import math
 from enum import Enum, auto
 
 from PySide6.QtCore import QPointF, QRectF, QSize, Qt
@@ -22,6 +23,12 @@ GLOSS_WIDTH_RATIO = 0.7
 GLOSS_ALPHA = 150
 TRIANGLE_SIZE_RATIO = 0.42
 CONTENT_SPACING = 8
+# Restart glyph: a clockwise arc with a gap at the top-right; the arrowhead
+# sits at the top and points right, like a classic "refresh" icon.
+RESTART_ARC_START = 15.0
+RESTART_ARC_SPAN = -295.0
+RESTART_HEAD_RATIO = 0.7
+QT_ANGLE_UNITS = 16  # QPainter.drawArc takes angles in 1/16 of a degree.
 
 
 def state_color(base: str, hovered: bool, pressed: bool) -> QColor:
@@ -91,19 +98,19 @@ class RoundButtonKind(Enum):
     """The three title buttons and their glyphs."""
 
     MINIMIZE = auto()
-    MAXIMIZE = auto()
+    RESTART = auto()
     CLOSE = auto()
 
 
 ROUND_BUTTON_COLORS = {
     RoundButtonKind.MINIMIZE: (theme.MINIMIZE_COLOR, theme.GLYPH_LIGHT),
-    RoundButtonKind.MAXIMIZE: (theme.MAXIMIZE_COLOR, theme.GLYPH_DARK),
+    RoundButtonKind.RESTART: (theme.RESTART_COLOR, theme.GLYPH_DARK),
     RoundButtonKind.CLOSE: (theme.CLOSE_COLOR, theme.GLYPH_LIGHT),
 }
 
 
 class RoundButton(HoverButton):
-    """A glossy round title button (minimize, maximize or close).
+    """A glossy round title button (minimize, restart or close).
 
     Args:
         kind: Which button to draw.
@@ -154,7 +161,7 @@ class RoundButton(HoverButton):
         self._paint_glyph(painter, center, radius * theme.ROUND_BUTTON_GLYPH_SCALE, glyph)
 
     def _paint_glyph(self, painter: QPainter, center: QPointF, half: float, color: str) -> None:
-        """Draw the minimize bar, maximize square or close cross.
+        """Draw the minimize bar, restart arrow or close cross.
 
         Args:
             painter: The active painter.
@@ -168,12 +175,45 @@ class RoundButton(HoverButton):
         painter.setBrush(Qt.BrushStyle.NoBrush)
         if self.kind is RoundButtonKind.MINIMIZE:
             painter.drawLine(center + QPointF(-half, 0), center + QPointF(half, 0))
-        elif self.kind is RoundButtonKind.MAXIMIZE:
-            painter.drawRoundedRect(QRectF(center.x() - half, center.y() - half, 2 * half, 2 * half),
-                                    half / 3, half / 3)
+        elif self.kind is RoundButtonKind.RESTART:
+            _paint_restart_arrow(painter, center, half, QColor(color))
         else:
             painter.drawLine(center + QPointF(-half, -half), center + QPointF(half, half))
             painter.drawLine(center + QPointF(-half, half), center + QPointF(half, -half))
+
+
+def _paint_restart_arrow(painter: QPainter, center: QPointF, radius: float, color: QColor) -> None:
+    """Draw a circular arrow: an open arc ending in a filled arrowhead.
+
+    Uses the painter's current pen for the arc. Angles follow Qt's convention
+    (degrees, counter-clockwise from 3 o'clock).
+
+    Args:
+        painter: The active painter.
+        center: The button center.
+        radius: The arc radius.
+        color: The arrowhead fill color.
+    """
+    arc = QRectF(center.x() - radius, center.y() - radius, 2 * radius, 2 * radius)
+    painter.drawArc(arc, int(RESTART_ARC_START * QT_ANGLE_UNITS),
+                    int(RESTART_ARC_SPAN * QT_ANGLE_UNITS))
+    end = math.radians(RESTART_ARC_START + RESTART_ARC_SPAN)
+    tip_base = center + QPointF(radius * math.cos(end), -radius * math.sin(end))
+    # Unit vectors (screen coordinates) along the sweep direction and outward.
+    sweep = math.copysign(1.0, RESTART_ARC_SPAN)
+    tangent = QPointF(-math.sin(end), -math.cos(end)) * sweep
+    outward = QPointF(math.cos(end), -math.sin(end))
+    head = radius * RESTART_HEAD_RATIO
+    arrowhead = QPainterPath(tip_base + tangent * head)
+    arrowhead.lineTo(tip_base + outward * head)
+    arrowhead.lineTo(tip_base - outward * head)
+    arrowhead.closeSubpath()
+    painter.save()
+    painter.setPen(QPen(color, theme.ROUND_BUTTON_GLYPH_WIDTH / 2, Qt.PenStyle.SolidLine,
+                        Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin))
+    painter.setBrush(color)
+    painter.drawPath(arrowhead)
+    painter.restore()
 
 
 def _paint_gloss(painter: QPainter, center: QPointF, radius: float) -> None:
