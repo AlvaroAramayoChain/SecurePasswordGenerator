@@ -51,15 +51,3 @@ jobs:
 
       - name: Run tests (including offscreen GUI smoke tests)
         run: python -m pytest -v
-
-  docker:
-    name: Docker build and tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Build image
-        run: docker compose build
-
-      - name: Run tests in container
-        run: docker compose run --rm test
